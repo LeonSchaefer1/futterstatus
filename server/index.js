@@ -20,15 +20,24 @@ app.listen(
 )
 
 app.get('/today', (req, res) => {
-    var curDate = new Date().toDateString();
+    var curDate = new Date().toISOString().split("T")[0];
+    var feeddate = new Date();
+    var morning;
+    var afternoon;
     console.log("curDate :" + curDate);
     query=`SELECT * FROM feed WHERE feeddate = '${curDate}'`;
     con.query(query, function (err, result, fields){
-        console.log(result);
-    });
-    res.status(200).send({
+        feeddate = result[0].feeddate.toLocaleDateString(); 
+        console.log("feeddate: " + feeddate);
+        morning = result[0].morning;
+        afternoon = result[0].afternoon;
 
-    })
+        res.status(200).send({
+            feeddate : feeddate,
+            morning : morning,
+            afternoon : afternoon
+        })
+    }); 
 })
 
 app.get('/week', (req, res) => {
