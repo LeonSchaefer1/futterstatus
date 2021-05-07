@@ -45,22 +45,17 @@ app.get('/week', (req, res) => {
     var curDate = new Date();
     var one_day = 1000 * 60 * 60 * 24;
     var dateSixDaysAgo = new Date(curDate - (one_day * 6)).toISOString().split("T")[0];
-    console.log("dateSixDaysAgo: " + dateSixDaysAgo);
     curDate = curDate.toISOString().split("T")[0];
-    console.log("curDate: " + curDate);
+
     var query=`SELECT * FROM feed WHERE feeddate BETWEEN '${dateSixDaysAgo}' AND '${curDate}'`;
-    //var query = `SELECT * FROM feed WHERE feeddate BETWEEN '2021-04-30' AND '2021-05-07'`;
-    con.query(query, function(err, result, fields){
-        console.log(result.length);
-        
+    con.query(query, function(err, result, fields){      
         for (let i = 0; i < result.length; i++) {
             week.push({
                 morning : result[i].morning,
                 afternoon : result[i].afternoon,
                 feeddate : result[i].feeddate.toLocaleDateString()
             })
-        }
-        
+        }  
         res.status(200).send({
             week: week
         })
@@ -71,8 +66,66 @@ app.get('/week', (req, res) => {
 app.post('/today', (req, res) => {
 
     // Write "morning" or "afternoon" into database with current Datestamp
-    //
-    res.status(200).send({
+    var currentTime = new Date().toLocaleTimeString()
+    var currentHour = currentTime.split(":")[0];
+    console.log(currentHour);
+    var curDate = new Date().toISOString().split("T")[0];
+    var externSecret = req.headers.secret;
+    var superSecret = 'mamamiadasistabereinsicherercode';
+    if(externSecret === superSecret){
+        var query=`SELECT * FROM feed WHERE feeddate = '${curDate}'`;
+        con.query(query, function(err, result, fields){
+            if(result.length === 0){
+                //TODO No Feeding happened today, create a new Database Entry with todays Date and 
+                // check current time. If Time < xx o Clock set morning to else, after time xx o Clock, set afternoon to true
+                if(currentHour >= 0 && currentHour < 16){
+                    query = `INSERT INTO feed (morning, afternoon, feeddate) VALUES ('1', '0', '${curDate}')`
+                    con.query(query, function(err, result, fields){
+                    res.status(200).send({
+                        message : "Das morgentliche Fuettern war erfolgreich!"
+                    })
+                })
+                }
+                else{
+                    query = `INSERT INTO feed (morning, afternoon, feeddate) VALUES ('0', '1', '${curDate}')`
+                    con.query(query, function(err, result, fields){
+                    res.status(200).send({
+                        message : "Das abendliche Fuettern war erfolgreich!"
+                    })
+                })
+                }
+                
+            }
+            else{
+                //Current Date already exists in Database, which means we only have to update the table and set afternoon = true
+                // but check if afternoon is already true, then tell the client that no feeding is necessary
+                if(result[0].afternoon === 0 && currentHour > 16){
+                    query = `UPDATE feed SET afternoon = 1 WHERE feeddate = '${curDate}'`;
+                    con.query(query, function(err, result, fields){
+                        res.status(200).send({
+                            message : "Abendliches Füttern war erfolgreich!"
+                        })
+                    })
+                }
+                else{
+                    if(currentHour > 16){
+                        res.status(400).send({
+                            message : "Heute Abend wurde schon gefüttert"
+                        })
+                    }
+                    else{
+                        res.status(400).send({
+                            message : "Heute Morgen wurde schon gefüttert"
+                        })                    }
+                }
+            }
+        })
         
-    })
+    }
+    else{
+        res.status(400).send({
+            message : "Du darfst aber gar keinen Futterstatus aendern :("
+        })
+    }
+    
 })
