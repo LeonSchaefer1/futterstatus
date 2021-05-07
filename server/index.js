@@ -24,8 +24,7 @@ app.get('/today', (req, res) => {
     var feeddate = new Date();
     var morning;
     var afternoon;
-    console.log("curDate :" + curDate);
-    query=`SELECT * FROM feed WHERE feeddate = '${curDate}'`;
+    var query=`SELECT * FROM feed WHERE feeddate = '${curDate}'`;
     con.query(query, function (err, result, fields){
         feeddate = result[0].feeddate.toLocaleDateString(); 
         console.log("feeddate: " + feeddate);
@@ -42,10 +41,32 @@ app.get('/today', (req, res) => {
 
 app.get('/week', (req, res) => {
     // Send whole week
-    res.status(200).send({
+    var week = [];
+    var curDate = new Date();
+    var one_day = 1000 * 60 * 60 * 24;
+    var dateSixDaysAgo = new Date(curDate - (one_day * 6)).toISOString().split("T")[0];
+    console.log("dateSixDaysAgo: " + dateSixDaysAgo);
+    curDate = curDate.toISOString().split("T")[0];
+    console.log("curDate: " + curDate);
+    var query=`SELECT * FROM feed WHERE feeddate BETWEEN '${dateSixDaysAgo}' AND '${curDate}'`;
+    //var query = `SELECT * FROM feed WHERE feeddate BETWEEN '2021-04-30' AND '2021-05-07'`;
+    con.query(query, function(err, result, fields){
+        console.log(result.length);
         
+        for (let i = 0; i < result.length; i++) {
+            week.push({
+                morning : result[i].morning,
+                afternoon : result[i].afternoon,
+                feeddate : result[i].feeddate.toLocaleDateString()
+            })
+        }
+        
+        res.status(200).send({
+            week: week
+        })
     })
-})
+    
+});
 
 app.post('/today', (req, res) => {
 
