@@ -49,7 +49,8 @@ app.get('/week', (req, res) => {
 
 app.post('/today', (req, res) => {
 
-    // Write "morning" or "afternoon" into database
+    // Write "morning" or "afternoon" into database with current Datestamp
+    //
     res.status(200).send({
         
     })
